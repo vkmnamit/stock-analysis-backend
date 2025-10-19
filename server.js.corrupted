@@ -1,0 +1,403 @@
+const express = require('express');
+const axios = require('axios');
+
+const cors = require('cors');
+
+export default function PredictionChart({ data, currentPrice, sentiment }) {const dotenv = require('dotenv');
+
+    if (!data || data.length === 0) return nullconst path = require('path');
+
+
+
+    // Determine color based on sentiment// Load .env from the same directory as server.js
+
+    const trendColor = sentiment > 0 ? '#000' : sentiment < 0 ? '#666' : '#999'dotenv.config({ path: path.join(__dirname, '.env') });
+
+    const directionIcon = sentiment > 0 ? '📈' : sentiment < 0 ? '📉' : '➡️'const app = express();
+
+app.use(cors());
+
+    return (app.use(express.json());
+
+        <div style={{ width: '100%', marginTop: '1rem' }}>
+
+            <div style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid #000', background: '#fff' }}>const FINHUB_API_KEY = process.env.FINHUB_API_KEY;
+
+                <h3 style={{ margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>console.log('🔑 API Key loaded:', FINHUB_API_KEY ? 'Yes ✅' : 'No ❌');
+
+                    {directionIcon} AI-Powered Prediction
+
+                </h3>// Simple in-memory watchlist (replace with a DB in production)
+
+                <p className="muted" style={{ fontSize: '0.9rem', margin: 0 }}>const watchlist = new Set();
+
+                    Based on recent news sentiment analysis • 7-day forecast
+
+                </p>app.get('/api/stock/:symbol', async (req, res) => {
+
+            </div>    const symbol = req.params.symbol;
+
+                try {
+
+            <LineChart        const response = await axios.get('https://finnhub.io/api/v1/quote', {
+
+                width={800}            params: { symbol, token: FINHUB_API_KEY },
+
+                height={300}            timeout: 10000,
+
+                data={data}        });
+
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}        res.json(response.data);
+
+            >    } catch (error) {
+
+                <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />        console.error('Quote error', error?.response?.data || error.message);
+
+                <XAxis         res.status(500).json({ error: 'Error fetching stock data' });
+
+                    dataKey="day"     }
+
+                    label={{ value: 'Days Ahead', position: 'insideBottom', offset: -5 }}});
+
+                    stroke="#000"
+
+                />app.get('/api/company/:symbol', async (req, res) => {
+
+                <YAxis     const symbol = req.params.symbol;
+
+                    label={{ value: 'Price ($)', angle: -90, position: 'insideLeft' }}    try {
+
+                    stroke="#000"        const response = await axios.get('https://finnhub.io/api/v1/stock/profile2', {
+
+                    domain={['auto', 'auto']}            params: { symbol, token: FINHUB_API_KEY },
+
+                />            timeout: 10000,
+
+                <Tooltip         });
+
+                    contentStyle={{ background: '#fff', border: '1px solid #000' }}        res.json(response.data);
+
+                    formatter={(value, name) => {    } catch (error) {
+
+                        if (name === 'price') return [`$${value.toFixed(2)}`, 'Predicted Price']        console.error('Company error', error?.response?.data || error.message);
+
+                        if (name === 'confidence') return [`${(value * 100).toFixed(0)}%`, 'Confidence']        res.status(500).json({ error: 'Error fetching company data' });
+
+                        return [value, name]    }
+
+                    }}});
+
+                />
+
+                <Legend />app.get('/api/stock-news/:symbol', async (req, res) => {
+
+                <ReferenceLine     const symbol = req.params.symbol;
+
+                    y={currentPrice}     const today = new Date();
+
+                    stroke="#000"     const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+                    strokeDasharray="5 5" 
+
+                    label={{ value: 'Current Price', fill: '#000', fontSize: 12 }}    const toDate = today.toISOString().split('T')[0];
+
+                />    const fromDate = lastWeek.toISOString().split('T')[0];
+
+                <Line 
+
+                    type="monotone"     try {
+
+                    dataKey="price"         const response = await axios.get('https://finnhub.io/api/v1/company-news', {
+
+                    stroke={trendColor}             params: {
+
+                    strokeWidth={2}                symbol,
+
+                    dot={{ fill: trendColor, r: 4 }}                from: fromDate,
+
+                    name="Predicted Price"                to: toDate,
+
+                />                token: FINHUB_API_KEY,
+
+                <Line             },
+
+                    type="monotone"             timeout: 10000,
+
+                    dataKey="confidence"         });
+
+                    stroke="#ccc"         res.json(response.data);
+
+                    strokeWidth={1}    } catch (error) {
+
+                    strokeDasharray="3 3"        console.error('Stock news error', error?.response?.data || error.message);
+
+                    dot={false}        res.status(500).json({ error: 'Error fetching stock news' });
+
+                    name="Confidence Level"    }
+
+                    hide});
+
+                />
+
+            </LineChart>app.get('/api/market-news', async (req, res) => {
+
+        </div>    try {
+
+    )        const response = await axios.get('https://finnhub.io/api/v1/news', {
+
+}            params: { category: 'general', token: FINHUB_API_KEY },
+
+            timeout: 10000,
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error('Market news error', error?.response?.data || error.message);
+        res.status(500).json({ error: 'Error fetching market news' });
+    }
+});
+
+app.get('/api/forex/:pair', async (req, res) => {
+    const pair = req.params.pair; // e.g., "OANDA:EUR_USD"
+    try {
+        const response = await axios.get('https://finnhub.io/api/v1/forex/rates', {
+            params: { symbol: pair, token: FINHUB_API_KEY },
+            timeout: 10000,
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error('Forex error', error?.response?.data || error.message);
+        res.status(500).json({ error: 'Error fetching forex data' });
+    }
+});
+
+// Candle data for charts
+app.get('/api/candles/:symbol', async (req, res) => {
+    const symbol = req.params.symbol;
+    const { resolution = 'D', from, to } = req.query;
+
+    // Default to last 30 days if not provided
+    const toTime = to || Math.floor(Date.now() / 1000);
+    const fromTime = from || (toTime - 30 * 24 * 60 * 60);
+
+    try {
+        const response = await axios.get('https://finnhub.io/api/v1/stock/candle', {
+            params: {
+                symbol,
+                resolution,
+                from: fromTime,
+                to: toTime,
+                token: FINHUB_API_KEY,
+            },
+            timeout: 10000,
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error('Candle error', error?.response?.data || error.message);
+        res.status(500).json({ error: 'Error fetching candle data' });
+    }
+});
+
+// Crypto quotes
+app.get('/api/crypto/:symbol', async (req, res) => {
+    const symbol = req.params.symbol; // e.g., "BINANCE:BTCUSDT"
+    try {
+        const response = await axios.get('https://finnhub.io/api/v1/quote', {
+            params: { symbol, token: FINHUB_API_KEY },
+            timeout: 10000,
+        });
+        res.json(response.data);
+    } catch (error) {
+        console.error('Crypto error', error?.response?.data || error.message);
+        res.status(500).json({ error: 'Error fetching crypto data' });
+    }
+});
+
+// Watchlist endpoints (no auth) — in-memory for now
+app.get('/api/watchlist', (req, res) => {
+    res.json(Array.from(watchlist));
+});
+
+app.post('/api/watchlist', (req, res) => {
+    const { symbol } = req.body || {};
+    if (!symbol || typeof symbol !== 'string') return res.status(400).json({ error: 'symbol required' });
+    watchlist.add(symbol.toUpperCase());
+    res.json({ ok: true, watchlist: Array.from(watchlist) });
+});
+
+app.delete('/api/watchlist/:symbol', (req, res) => {
+    const symbol = req.params.symbol;
+    watchlist.delete(symbol.toUpperCase());
+    res.json({ ok: true, watchlist: Array.from(watchlist) });
+});
+
+// Stock search endpoint - search for stocks globally including India
+app.get('/api/search', async (req, res) => {
+    const { q } = req.query;
+    if (!q || q.trim().length < 1) {
+        return res.status(400).json({ error: 'Query parameter required' });
+    }
+    
+    try {
+        const response = await axios.get('https://finnhub.io/api/v1/search', {
+            params: { q: q.trim(), token: FINHUB_API_KEY },
+            timeout: 10000,
+        });
+        
+        // Filter and format results
+        const results = (response.data.result || [])
+            .filter(stock => stock.symbol && stock.description)
+            .slice(0, 20) // Limit to 20 results
+            .map(stock => ({
+                symbol: stock.symbol,
+                description: stock.description,
+                type: stock.type || 'Stock',
+                displaySymbol: stock.displaySymbol || stock.symbol
+            }));
+        
+        res.json({ count: results.length, results });
+    } catch (error) {
+        console.error('Search error:', error?.response?.data || error.message);
+        res.status(500).json({ error: 'Error searching stocks' });
+    }
+});
+
+// Prediction endpoint based on news sentiment
+app.get('/api/prediction/:symbol', async (req, res) => {
+    const { symbol } = req.params;
+    try {
+        // Get stock news
+        const to = new Date().toISOString().split('T')[0];
+        const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+        const newsResponse = await axios.get(
+            `https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${from}&to=${to}&token=${FINHUB_API_KEY}`,
+            { timeout: 10000 }
+        );
+        
+        // Get current price
+        const quoteResponse = await axios.get(
+            `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${FINHUB_API_KEY}`,
+            { timeout: 10000 }
+        );
+        
+        const news = newsResponse.data || [];
+        const currentPrice = quoteResponse.data.c;
+        
+        // Simple sentiment analysis based on keywords
+        const sentimentScore = analyzeSentiment(news);
+        
+        // Generate prediction based on sentiment and current price
+        const prediction = generatePrediction(currentPrice, sentimentScore, news.length);
+        
+        res.json({
+            symbol,
+            currentPrice,
+            sentiment: sentimentScore,
+            newsCount: news.length,
+            prediction
+        });
+    } catch (err) {
+        console.error('Prediction error:', err.message);
+        res.status(500).json({ error: 'Prediction error' });
+    }
+});
+
+// Sentiment analysis helper
+function analyzeSentiment(newsArticles) {
+    const positiveWords = ['growth', 'profit', 'surge', 'gains', 'rally', 'bullish', 'strong', 'beat', 'upgrade', 'success', 'positive', 'record', 'high', 'breakthrough', 'innovation'];
+    const negativeWords = ['loss', 'decline', 'drop', 'crash', 'bearish', 'weak', 'miss', 'downgrade', 'concern', 'negative', 'fall', 'warning', 'risk', 'debt', 'lawsuit'];
+    
+    let score = 0;
+    let totalArticles = newsArticles.length;
+    
+    if (totalArticles === 0) return 0;
+    
+    newsArticles.forEach(article => {
+        const text = `${article.headline} ${article.summary}`.toLowerCase();
+        
+        positiveWords.forEach(word => {
+            if (text.includes(word)) score += 1;
+        });
+        
+        negativeWords.forEach(word => {
+            if (text.includes(word)) score -= 1;
+        });
+    });
+    
+    // Normalize score between -1 and 1
+    return Math.max(-1, Math.min(1, score / (totalArticles * 2)));
+}
+
+// Generate prediction helper
+function generatePrediction(currentPrice, sentiment, newsCount) {
+    // More balanced prediction - can go up OR down based on sentiment
+    const sentimentFactor = sentiment * 0.08; // Max 8% change from sentiment (both directions)
+    
+    // Volume factor should be neutral - just indicates reliability, not direction
+    const volumeBoost = Math.min(newsCount / 50, 0.01); // Small boost for high news volume
+    
+    // Calculate predicted change - can be positive or negative
+    let predictedChangePercent = sentimentFactor * 100;
+    
+    // Add some realism - even positive sentiment can have negative predictions sometimes
+    const randomFactor = (Math.random() - 0.7) * 0.02; // Slight random bias
+    predictedChangePercent += randomFactor * 100;
+    
+    // Apply volume boost only to magnitude, not direction
+    if (Math.abs(sentiment) > 0.1) {
+        predictedChangePercent *= (1 + volumeBoost);
+    }
+    
+    const predictedPrice = currentPrice * (1 + predictedChangePercent / 100);
+    
+    // Generate 7-day prediction points
+    const predictions = [];
+    const baseVolatility = 0.015; // 1.5% daily volatility
+    
+    for (let i = 1; i <= 7; i++) {
+        const dayFactor = i / 7;
+        const randomNoise = (Math.random() - 0.5) * baseVolatility * currentPrice;
+        const trendPrice = currentPrice + (predictedPrice - currentPrice) * dayFactor;
+        
+        predictions.push({
+            day: i,
+            price: Math.max(0, trendPrice + randomNoise),
+            confidence: Math.max(0.3, 1 - (i * 0.1)) // Confidence decreases over time
+        });
+    }
+    
+    return {
+        direction: sentiment > 0 ? 'bullish' : sentiment < 0 ? 'bearish' : 'neutral',
+        changePercent: predictedChangePercent.toFixed(2),
+        targetPrice: predictedPrice.toFixed(2),
+        confidence: Math.abs(sentiment) * 100,
+        timeframe: '7 days',
+        predictions
+    };
+}
+
+app.get('/', (req, res) => res.send('Welcome to the Stock Analysis API'));
+
+const PORT = process.env.PORT || 5000;
+const server = app.listen(PORT, () => {
+    console.log(`✅ Server is running on port ${PORT}`);
+    console.log(`📡 API available at http://localhost:${PORT}`);
+});
+
+// Keep server alive on errors
+process.on('uncaughtException', (err) => {
+    console.error('❌ Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+    });
+});

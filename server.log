@@ -1,0 +1,19 @@
+[dotenv@17.2.3] injecting env (1) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+Server is running on http://localhost:5001
+Health check: http://localhost:5001/health
+Error fetching candles data: Request failed with status code 403
+Generating mock candle data for: AAPL
+Error fetching candles data: Request failed with status code 403
+Generating mock candle data for: AAPL
+Error fetching candles data: Request failed with status code 403
+Generating mock candle data for: AAPL
+Error fetching candles data: Request failed with status code 403
+Generating mock candle data for: AAPL
+Error fetching candles data: Request failed with status code 403
+Generating mock candle data for: AAPL
+Error fetching candles data: Request failed with status code 403
+Generating mock candle data for: AAPL
+Error fetching candles data: Request failed with status code 403
+Generating mock candle data for: AAPL
+Error fetching candles data: Request failed with status code 403
+Generating mock candle data for: AAPL
