@@ -568,6 +568,12 @@ app.get('/api/indicators/:symbol', async (req, res) => {
         const quote = quoteResponse.data;
         const financials = financialsResponse.data.metric || {};
 
+        // Debug logging
+        console.log(`Financials data for ${symbol}:`, Object.keys(financials));
+        console.log('PE Ratio available:', financials['peBasicExclExtraTTM'] || financials['peNormalizedAnnual']);
+        console.log('PB Ratio available:', financials['pbQuarterly'] || financials['priceToBook']);
+        console.log('ROE available:', financials['roeTTM']);
+
         // Extract comprehensive financial metrics
         const indicators = {
             // Price & Valuation Metrics
