@@ -568,21 +568,105 @@ app.get('/api/indicators/:symbol', async (req, res) => {
         const quote = quoteResponse.data;
         const financials = financialsResponse.data.metric || {};
 
+        // Extract comprehensive financial metrics
         const indicators = {
-            rsi: financials['rsi'] || Math.random() * 100,
-            macd: financials['macd'] || (Math.random() - 0.5) * 10,
-            sma50: financials['52WeekHigh'] ? quote.c * 0.95 : quote.c * (0.9 + Math.random() * 0.1),
-            sma200: financials['52WeekLow'] ? quote.c * 1.05 : quote.c * (0.8 + Math.random() * 0.2),
-            volume: quote.v || 0,
-            avgVolume: financials['10DayAverageTradingVolume'] || quote.v * (0.8 + Math.random() * 0.4),
-            peRatio: financials['peBasicExclExtraTTM'] || null,
+            // Price & Valuation Metrics
+            peRatio: financials['peBasicExclExtraTTM'] || financials['peNormalizedAnnual'] || null,
+            pbRatio: financials['pbQuarterly'] || financials['priceToBook'] || null,
+            psRatio: financials['psTTM'] || null,
+            pcRatio: financials['priceToCashFlowTTM'] || null,
+            evToEbitda: financials['enterpriseValueToEbitdaTTM'] || null,
+
+            // Profitability Metrics
+            roe: financials['roeTTM'] || null, // Return on Equity
+            roa: financials['roaTTM'] || null, // Return on Assets
+            roic: financials['roicTTM'] || null, // Return on Invested Capital
+            grossMargin: financials['grossMarginTTM'] || null,
+            operatingMargin: financials['operatingMarginTTM'] || null,
+            netMargin: financials['netMarginTTM'] || null,
+
+            // Financial Health Metrics
+            debtToEquity: financials['totalDebtToEquityQuarterly'] || null,
+            currentRatio: financials['currentRatioQuarterly'] || null,
+            quickRatio: financials['quickRatioQuarterly'] || null,
+            totalDebtToTotalCapital: financials['totalDebtToTotalCapitalQuarterly'] || null,
+
+            // Growth Metrics
+            revenueGrowth: financials['revenueGrowthTTM'] || null,
+            earningsGrowth: financials['epsGrowthTTM'] || null,
+            bookValuePerShare: financials['bookValuePerShareQuarterly'] || null,
+
+            // Balance Sheet
+            totalEquity: financials['totalShareholdersEquityQuarterly'] || null,
+            totalAssets: financials['totalAssetsQuarterly'] || null,
+            totalLiabilities: financials['totalLiabilitiesQuarterly'] || null,
+            cashAndEquivalents: financials['cashAndShortTermInvestmentsQuarterly'] || null,
+
+            // Income Statement
             eps: financials['epsBasicExclExtraItemsTTM'] || null,
-            marketCap: financials['marketCapitalization'] || null
+            revenuePerShare: financials['revenuePerShareTTM'] || null,
+            ebitda: financials['ebitdaTTM'] || null,
+
+            // Market Data
+            marketCap: financials['marketCapitalization'] || null,
+            sharesOutstanding: financials['sharesOutstanding'] || null,
+            beta: financials['beta'] || null,
+
+            // Technical Indicators (calculated or from API)
+            rsi: financials['rsi'] || null,
+            macd: financials['macd'] || null,
+            sma50: financials['52WeekHigh'] ? quote.c * 0.95 : null,
+            sma200: financials['52WeekLow'] ? quote.c * 1.05 : null,
+            volume: quote.v || 0,
+            avgVolume: financials['10DayAverageTradingVolume'] || null,
+
+            // 52-week data
+            week52High: financials['52WeekHigh'] || null,
+            week52Low: financials['52WeekLow'] || null,
+            week52Change: financials['52WeekPriceReturnDaily'] || null
         };
 
-        res.json(indicators);
+        // Remove null values and format numbers
+        const cleanedIndicators = {};
+        Object.keys(indicators).forEach(key => {
+            if (indicators[key] !== null && indicators[key] !== undefined) {
+                if (typeof indicators[key] === 'number') {
+                    // Format large numbers appropriately
+                    if (key.includes('marketCap') || key.includes('total') || key.includes('ebitda')) {
+                        cleanedIndicators[key] = indicators[key] >= 1e9 ? `${(indicators[key] / 1e9).toFixed(2)}B` :
+                            indicators[key] >= 1e6 ? `${(indicators[key] / 1e6).toFixed(2)}M` :
+                                indicators[key] >= 1e3 ? `${(indicators[key] / 1e3).toFixed(2)}K` :
+                                    indicators[key].toFixed(2);
+                    } else if (key.includes('Ratio') || key.includes('Margin') || key.includes('Growth') || key.includes('beta')) {
+                        cleanedIndicators[key] = indicators[key].toFixed(2);
+                    } else if (key.includes('PerShare') || key.includes('eps') || key.includes('sma') || key.includes('macd')) {
+                        cleanedIndicators[key] = `$${indicators[key].toFixed(2)}`;
+                    } else {
+                        cleanedIndicators[key] = indicators[key].toFixed(2);
+                    }
+                } else {
+                    cleanedIndicators[key] = indicators[key];
+                }
+            }
+        });
+
+        res.json({
+            symbol: symbol,
+            indicators: cleanedIndicators,
+            lastUpdated: new Date().toISOString()
+        });
     } catch (error) {
         console.error('Error fetching indicators:', error.message);
+
+        // Handle 403 forbidden errors
+        if (error.response && error.response.status === 403) {
+            return res.status(403).json({
+                error: 'Financial data not available',
+                message: 'This stock exchange or symbol is not supported by the API. Try US stocks (e.g., AAPL) or Indian NSE stocks (e.g., RELIANCE.NS)',
+                symbol: req.params.symbol
+            });
+        }
+
         res.status(500).json({
             error: 'Failed to fetch indicators',
             message: error.message
